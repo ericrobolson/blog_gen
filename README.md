@@ -1,4 +1,4 @@
-An experiment in hexagonal architecture, type driven development and compiler design.
+An experiment in architecture, type driven development and compiler design. The end result is a compiler that takes in specific Markdown files and outputs a static website.
 
 Roadmap
 - [x] Parse env args for input directory + output directory
