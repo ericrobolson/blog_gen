@@ -249,10 +249,27 @@ pub fn body(theme: &Theme) -> Css {
         main_class,
         false,
         selector,
-        TOP_NAV_COLUMN_PX_LIMIT,
         vec![
-            format!("padding: {} 0 {} 0", mobile_top_nav_padding, nav_padding),
-            "max-width: 100vw".into(),
+            // Rule for vertical nav bar
+            MediaRule {
+                max_width_pixels: TOP_NAV_COLUMN_PX_LIMIT,
+                rules: vec![format!(
+                    "padding: {} 0 {} 0",
+                    mobile_top_nav_padding, nav_padding
+                )],
+            },
+            // Rule for increasing body size for smaller screens
+            MediaRule {
+                max_width_pixels: 1024,
+                rules: vec![
+                    format!(
+                        "padding: {mobile_top_nav_padding} 0 {nav_padding} 0",
+                        mobile_top_nav_padding = mobile_top_nav_padding,
+                        nav_padding = nav_padding
+                    ),
+                    "max-width: 100vw".into(),
+                ],
+            },
         ],
     )
 }
@@ -389,22 +406,33 @@ fn list(class: &Class) -> Css {
     format!("{}", main_class).into()
 }
 
+struct MediaRule {
+    max_width_pixels: u32,
+    rules: Vec<String>,
+}
+
 fn media_screen_query(
     main_class: String,
     is_custom_class: bool,
     id: &str,
-    max_width_pixels: u32,
-    media_rules: Vec<String>,
+    media_rules: Vec<MediaRule>,
 ) -> Css {
-    let size_rules = format!("(max-width: {}px)", max_width_pixels);
+    let mut rules = vec![main_class];
 
-    let prefix = if is_custom_class { "." } else { "" };
+    let mut media_rules: Vec<String> = media_rules
+        .iter()
+        .map(|m| {
+            let size_rules = format!("(max-width: {}px)", m.max_width_pixels);
+            let prefix = if is_custom_class { "." } else { "" };
+            let media_class = format!("{}{} {{ {} }}", prefix, id, combine_rules(m.rules.clone()));
+            let media_class = format!("@media screen and {} {{ {} }}", size_rules, media_class);
+            media_class
+        })
+        .collect();
 
-    let media_class = format!("{}{} {{ {} }}", prefix, id, combine_rules(media_rules));
+    rules.append(&mut &mut media_rules);
 
-    let media_class = format!("@media screen and {} {{ {} }}", size_rules, media_class);
-
-    format!("{}\n{}", main_class, media_class).into()
+    rules.join("\n").into()
 }
 
 const TOP_NAV_COLUMN_PX_LIMIT: u32 = 400;
@@ -438,8 +466,10 @@ pub fn nav(class: &Class, position: &Position, theme: &Theme) -> Css {
             main_class,
             true,
             class.selector().to_str(),
-            TOP_NAV_COLUMN_PX_LIMIT,
-            vec!["flex-direction: column".into()],
+            vec![MediaRule {
+                max_width_pixels: TOP_NAV_COLUMN_PX_LIMIT,
+                rules: vec!["flex-direction: column".into()],
+            }],
         )
     } else {
         main_class.into()
