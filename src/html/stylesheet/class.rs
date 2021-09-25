@@ -237,7 +237,7 @@ pub fn body(theme: &Theme) -> Css {
         "font-size: 18pt".into(),
         "font-weight: 400".into(),
         "margin: auto".into(),
-        "max-width: 100vw".into(),
+        "max-width: 70vw".into(),
         format!("padding: {} 0 {} 0", nav_padding, nav_padding),
         "text-align: center".into(),
     ];
@@ -250,10 +250,10 @@ pub fn body(theme: &Theme) -> Css {
         false,
         selector,
         TOP_NAV_COLUMN_PX_LIMIT,
-        vec![format!(
-            "padding: {} 0 {} 0",
-            mobile_top_nav_padding, nav_padding
-        )],
+        vec![
+            format!("padding: {} 0 {} 0", mobile_top_nav_padding, nav_padding),
+            "max-width: 100vw".into(),
+        ],
     )
 }
 
