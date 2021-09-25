@@ -252,7 +252,8 @@ pub fn body(theme: &Theme) -> Css {
         vec![
             // Rule for vertical nav bar
             MediaRule {
-                max_width_pixels: TOP_NAV_COLUMN_PX_LIMIT,
+                max_height_pixels: None,
+                max_width_pixels: Some(TOP_NAV_COLUMN_PX_LIMIT),
                 rules: vec![format!(
                     "padding: {} 0 {} 0",
                     mobile_top_nav_padding, nav_padding
@@ -260,15 +261,9 @@ pub fn body(theme: &Theme) -> Css {
             },
             // Rule for increasing body size for smaller screens
             MediaRule {
-                max_width_pixels: 1024,
-                rules: vec![
-                    format!(
-                        "padding: {mobile_top_nav_padding} 0 {nav_padding} 0",
-                        mobile_top_nav_padding = mobile_top_nav_padding,
-                        nav_padding = nav_padding
-                    ),
-                    "max-width: 100vw".into(),
-                ],
+                max_height_pixels: None,
+                max_width_pixels: Some(1350),
+                rules: vec!["max-width: 100vw".into()],
             },
         ],
     )
@@ -407,7 +402,8 @@ fn list(class: &Class) -> Css {
 }
 
 struct MediaRule {
-    max_width_pixels: u32,
+    max_height_pixels: Option<u32>,
+    max_width_pixels: Option<u32>,
     rules: Vec<String>,
 }
 
@@ -422,10 +418,38 @@ fn media_screen_query(
     let mut media_rules: Vec<String> = media_rules
         .iter()
         .map(|m| {
-            let size_rules = format!("(max-width: {}px)", m.max_width_pixels);
+            let size_rules = {
+                let width_rule = match m.max_width_pixels {
+                    Some(max_width_px) => Some(format!("(max-width: {}px)", max_width_px)),
+                    None => None,
+                };
+
+                let height_rule = match m.max_height_pixels {
+                    Some(max_height_px) => Some(format!("(max-height: {}px)", max_height_px)),
+                    None => None,
+                };
+
+                if width_rule.is_none() && height_rule.is_none() {
+                    format!("")
+                } else {
+                    let has_two_rules = width_rule.is_some() && height_rule.is_some();
+
+                    if has_two_rules {
+                        format!(
+                            "and {width_rule} and {height_rule}",
+                            width_rule = width_rule.unwrap(),
+                            height_rule = height_rule.unwrap()
+                        )
+                    } else {
+                        let rule = width_rule.unwrap_or(height_rule.unwrap_or_default());
+
+                        format!("and {rule}", rule = rule)
+                    }
+                }
+            };
             let prefix = if is_custom_class { "." } else { "" };
             let media_class = format!("{}{} {{ {} }}", prefix, id, combine_rules(m.rules.clone()));
-            let media_class = format!("@media screen and {} {{ {} }}", size_rules, media_class);
+            let media_class = format!("@media screen {} {{ {} }}", size_rules, media_class);
             media_class
         })
         .collect();
@@ -466,10 +490,20 @@ pub fn nav(class: &Class, position: &Position, theme: &Theme) -> Css {
             main_class,
             true,
             class.selector().to_str(),
-            vec![MediaRule {
-                max_width_pixels: TOP_NAV_COLUMN_PX_LIMIT,
-                rules: vec!["flex-direction: column".into()],
-            }],
+            vec![
+                // Convert to column
+                MediaRule {
+                    max_height_pixels: None,
+                    max_width_pixels: Some(TOP_NAV_COLUMN_PX_LIMIT),
+                    rules: vec!["flex-direction: column".into()],
+                },
+                // Convert it to fixed
+                MediaRule {
+                    max_height_pixels: Some(720),
+                    max_width_pixels: None,
+                    rules: vec!["position: absolute".into()],
+                },
+            ],
         )
     } else {
         main_class.into()
